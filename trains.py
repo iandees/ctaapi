@@ -5,7 +5,7 @@ import datetime
 class TrainTrackerException(Exception):
     pass
 
-class Train(object):
+class TrainTracker(object):
     def __init__(self, api_key):
         self.api_key = api_key
         self.base_url = 'http://lapi.transitchicago.com/api/1.0'
@@ -23,6 +23,9 @@ class Train(object):
     def parseFloat(cls, b):
         return float(b.text) if b is not None else b
     @classmethod
+    def parseInt(cls, b):
+        return int(b.text) if b is not None else b
+    @classmethod
     def _build_eta_dict(cls, eta):
         return {
             'station_id': eta.find('staId').text,
@@ -33,8 +36,8 @@ class Train(object):
             'destination_stop_id': eta.find('destSt').text,
             'destination_name': eta.find('destNm').text,
             'direction': eta.find('trDr').text,
-            'prediction_time': Train.parseTime(eta.find('prdt').text),
-            'arrival_time': Train.parseTime(eta.find('arrT').text),
+            'prediction_time': cls.parseTime(eta.find('prdt').text),
+            'arrival_time': cls.parseTime(eta.find('arrT').text),
             'approaching': cls.parseBool(eta.find('isApp').text),
             'scheduled': cls.parseBool(eta.find('isSch').text),
             'fault': cls.parseBool(eta.find('isFlt').text),
@@ -86,8 +89,45 @@ class Train(object):
             'stops': [self._build_eta_dict(eta) for eta in root.iter('eta')]
         }
 
+    def train_positions(self, *routes):
+        payload = {
+            'rt': ','.join(routes),
+            'key': self.api_key
+        }
+        resp = requests.get('%s/ttpositions.aspx' % self.base_url, params=payload)
+        resp.encoding = 'utf-8-sig'
+
+        root = ET.fromstring(resp.text)
+
+        if root.find('errCd').text != '0':
+            raise TrainTrackerException(root.find('errNm').text)
+
+        def parse_train(tr):
+            return {
+                'run_number': self.parseInt(tr.find('rn')),
+                'destination_stop_id': self.parseInt(tr.find('destSt')),
+                'destination_name': tr.find('destNm').text,
+                'direction': tr.find('trDr').text,
+                'next_station_id': self.parseInt(tr.find('nextStaId')),
+                'next_stop_id': self.parseInt(tr.find('nextStpId')),
+                'next_station_name': tr.find('nextStaNm').text,
+                'prediction_time': self.parseTime(tr.find('prdt').text),
+                'arrival_time': self.parseTime(tr.find('arrT').text),
+                'approaching': self.parseBool(tr.find('isApp').text),
+                'delayed': self.parseBool(tr.find('isDly').text),
+                'lat': self.parseFloat(tr.find('lat')),
+                'lon': self.parseFloat(tr.find('lon')),
+                'heading': self.parseFloat(tr.find('heading'))
+            }
+
+        result = {}
+        for route in root.iter('route'):
+            name = route.get('name')
+            result[name] = [parse_train(t) for t in route.iter('train')]
+        return result
 
 if __name__ == '__main__':
-    t = Train('c9436ba5fdc845db8981c144d76e2989')
-    print t.arrivals(map_id=40380, route_id='Brn')
-    print t.follow_train(609)
+    t = TrainTracker('c9436ba5fdc845db8981c144d76e2989')
+    #print t.arrivals(map_id=40380, route_id='Brn')
+    #print t.follow_train(609)
+    print t.train_positions('p')
