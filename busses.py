@@ -71,6 +71,39 @@ class BusTracker(object):
 
         return [parseVehicle(v) for v in root.iter('vehicle')]
 
+    def get_predictions(self, stop_ids=None, route_ids=None, vehicle_ids=None, max_results=None):
+        payload = {
+            'key': self.api_key,
+            'stpid': ','.join(stop_ids) if stop_ids else None,
+            'rt': ','.join(route_ids) if route_ids else None,
+            'vid': ','.join(vehicle_ids) if vehicle_ids else None,
+            'top': max_results
+        }
+        resp = requests.get('%s/getpredictions' % self.base_url, params=payload)
+        resp.encoding = 'utf-8-sig'
+
+        root = ET.fromstring(resp.text)
+
+        if root.find('error') is not None:
+            raise BusTrackerException(root.find('error').find('msg').text)
+
+        def parsePrediction(v):
+            return {
+                'timestamp': self.parseTime(v.find('tmstamp')),
+                'type': v.find('typ').text,
+                'stop_id': self.parseInt(v.find('stpid')),
+                'stop_name': v.find('stpnm').text,
+                'vehicle_id': v.find('vid').text,
+                'distance_remaining': self.ParseInt(v.find('dstp')),
+                'route_id': v.find('rt').text,
+                'route_directon': v.find('rtdir').text,
+                'destination': v.find('des').text,
+                'arrival_time': self.parseTime(v.find('prdtm')),
+                'delayed': self.parseBool(v.find('dly'))
+            }
+
+        return [parsePrediction(v) for v in root.iter('prd')]
+
 if __name__ == '__main__':
     t = BusTracker('foo')
     print t.get_time()
