@@ -6,6 +6,7 @@ class TrainTrackerException(Exception):
     pass
 
 class TrainTracker(object):
+    """ http://www.transitchicago.com/developers/ttdocs/default.aspx """
     def __init__(self, api_key):
         self.api_key = api_key
         self.base_url = 'http://lapi.transitchicago.com/api/1.0'
