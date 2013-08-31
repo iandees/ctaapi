@@ -28,12 +28,12 @@ class TrainTracker(object):
     @classmethod
     def _build_eta_dict(cls, eta):
         return {
-            'station_id': eta.find('staId').text,
-            'stop_id': eta.find('stpId').text,
+            'station_id': cls.parseInt(eta.find('staId')),
+            'stop_id': cls.parseInt(eta.find('stpId')),
             'station_name': eta.find('staNm').text,
             'stop_description': eta.find('stpDe').text,
             'route_name': eta.find('rt').text,
-            'destination_stop_id': eta.find('destSt').text,
+            'destination_stop_id': cls.parseInt(eta.find('destSt')),
             'destination_name': eta.find('destNm').text,
             'direction': eta.find('trDr').text,
             'prediction_time': cls.parseTime(eta.find('prdt').text),
@@ -44,7 +44,7 @@ class TrainTracker(object):
             'delayed': cls.parseBool(eta.find('isDly').text),
             'lat': cls.parseFloat(eta.find('lat')),
             'lon': cls.parseFloat(eta.find('lon')),
-            'heading': cls.parseFloat(eta.find('heading'))
+            'heading': cls.parseInt(eta.find('heading'))
         }
 
     def arrivals(self, map_id=None, stop_id=None, max_results=None, route_id=None):
@@ -84,7 +84,7 @@ class TrainTracker(object):
             'position': {
                 'lat': self.parseFloat(position.find('lat')),
                 'lon': self.parseFloat(position.find('lon')),
-                'heading': self.parseFloat(position.find('heading'))
+                'heading': self.parseInt(position.find('heading'))
             },
             'stops': [self._build_eta_dict(eta) for eta in root.iter('eta')]
         }
@@ -107,7 +107,7 @@ class TrainTracker(object):
                 'run_number': self.parseInt(tr.find('rn')),
                 'destination_stop_id': self.parseInt(tr.find('destSt')),
                 'destination_name': tr.find('destNm').text,
-                'direction': tr.find('trDr').text,
+                'direction': self.parseInt(tr.find('trDr')),
                 'next_station_id': self.parseInt(tr.find('nextStaId')),
                 'next_stop_id': self.parseInt(tr.find('nextStpId')),
                 'next_station_name': tr.find('nextStaNm').text,
@@ -117,7 +117,7 @@ class TrainTracker(object):
                 'delayed': self.parseBool(tr.find('isDly').text),
                 'lat': self.parseFloat(tr.find('lat')),
                 'lon': self.parseFloat(tr.find('lon')),
-                'heading': self.parseFloat(tr.find('heading'))
+                'heading': self.parseInt(tr.find('heading'))
             }
 
         result = {}
