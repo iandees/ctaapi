@@ -22,10 +22,10 @@ class TrainTracker(object):
             return False
     @classmethod
     def parseFloat(cls, b):
-        return float(b.text) if b is not None else b
+        return float(b.text) if b is not None and b.text else None
     @classmethod
     def parseInt(cls, b):
-        return int(b.text) if b is not None else b
+        return int(b.text) if b is not None and b.text else None
     @classmethod
     def _build_eta_dict(cls, eta):
         return {
